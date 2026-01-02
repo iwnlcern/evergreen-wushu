@@ -67,6 +67,9 @@ const Home = () => {
   const [trialDate, setTrialDate] = useState('')
   const [trialTime, setTrialTime] = useState('')
   const [trialFeedback, setTrialFeedback] = useState('')
+  const [trialSubmitting, setTrialSubmitting] = useState(false)
+  const [contactFeedback, setContactFeedback] = useState('')
+  const [contactSubmitting, setContactSubmitting] = useState(false)
 
   const slotOptions = useMemo(() => getSlotOptions(trialDate), [trialDate])
   const minDate = useMemo(() => formatDate(new Date()), [])
@@ -83,13 +86,78 @@ const Home = () => {
     }
   }, [slotOptions, trialTime])
 
-  const handleTrialSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const buildParams = (form: HTMLFormElement) => {
+    const formData = new FormData(form)
+    const params = new URLSearchParams()
+    formData.forEach((value, key) => {
+      if (typeof value === 'string') {
+        params.append(key, value)
+      }
+    })
+    return params
+  }
+
+  const postForm = async (path: string, params: URLSearchParams) => {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    })
+    let payload: { message?: string } = {}
+    try {
+      payload = (await response.json()) as { message?: string }
+    } catch {
+      payload = {}
+    }
+    if (!response.ok) {
+      throw new Error(payload.message ?? 'Unable to send request.')
+    }
+    return payload
+  }
+
+  const handleTrialSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setTrialFeedback('')
     if (!trialDate || !slotOptions.length || !trialTime) {
       setTrialFeedback('Please select an available date and time slot.')
       return
     }
-    setTrialFeedback(`Thanks! We will confirm your free trial for ${trialDate} (${trialTime}).`)
+    setTrialSubmitting(true)
+    try {
+      const params = buildParams(event.currentTarget)
+      params.set('date', trialDate)
+      params.set('time', trialTime)
+      const payload = await postForm('/api/trial', params)
+      setTrialFeedback(
+        payload.message ??
+          `Thanks! We will confirm your free trial for ${trialDate} (${trialTime}).`,
+      )
+      setTrialDate('')
+      setTrialTime('')
+      event.currentTarget.reset()
+    } catch (error) {
+      setTrialFeedback(error instanceof Error ? error.message : 'Unable to send request.')
+    } finally {
+      setTrialSubmitting(false)
+    }
+  }
+
+  const handleContactSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setContactFeedback('')
+    setContactSubmitting(true)
+    try {
+      const params = buildParams(event.currentTarget)
+      const payload = await postForm('/api/contact', params)
+      setContactFeedback(payload.message ?? 'Thanks! We will get back to you soon.')
+      event.currentTarget.reset()
+    } catch (error) {
+      setContactFeedback(error instanceof Error ? error.message : 'Unable to send request.')
+    } finally {
+      setContactSubmitting(false)
+    }
   }
 
   return (
@@ -259,27 +327,49 @@ const Home = () => {
               <span>2270 Quimby Rd, San Jose, CA 95122</span>
             </div>
           </div>
+          <div className="contact-card reveal" style={{ '--delay': '0.03s' } as CSSProperties}>
+            <h3>Send a message</h3>
+            <form className="form" onSubmit={handleContactSubmit}>
+              <label>
+                <span>Name</span>
+                <input type="text" name="name" placeholder="Your name" required />
+              </label>
+              <label>
+                <span>Email</span>
+                <input type="email" name="email" placeholder="you@email.com" required />
+              </label>
+              <label>
+                <span>Message</span>
+                <textarea name="message" placeholder="How can we help?" required />
+              </label>
+              <button className="button" type="submit" disabled={contactSubmitting}>
+                {contactSubmitting ? 'Sending...' : 'Send Message'}
+              </button>
+              {contactFeedback ? <p className="booking-feedback">{contactFeedback}</p> : null}
+              <small>Messages are emailed to our team.</small>
+            </form>
+          </div>
           <div className="contact-card booking-card reveal" style={{ '--delay': '0.05s' } as CSSProperties}>
             <h3>Book a free trial</h3>
             <p className="booking-note">Available slots: Mon-Fri 4-5pm, Sat 10-11am.</p>
             <form className="booking-form" onSubmit={handleTrialSubmit}>
               <label>
                 <span>First name</span>
-                <input type="text" name="trial-first-name" placeholder="First name" required />
+                <input type="text" name="first_name" placeholder="First name" required />
               </label>
               <label>
                 <span>Last name</span>
-                <input type="text" name="trial-last-name" placeholder="Last name" required />
+                <input type="text" name="last_name" placeholder="Last name" required />
               </label>
               <label>
                 <span>Email</span>
-                <input type="email" name="trial-email" placeholder="Email" required />
+                <input type="email" name="email" placeholder="Email" required />
               </label>
               <label>
                 <span>Preferred date</span>
                 <input
                   type="date"
-                  name="trial-date"
+                  name="date"
                   min={minDate}
                   value={trialDate}
                   onChange={(event) => {
@@ -292,7 +382,7 @@ const Home = () => {
               <label>
                 <span>Time slot</span>
                 <select
-                  name="trial-time"
+                  name="time"
                   value={trialTime}
                   onChange={(event) => {
                     setTrialTime(event.target.value)
@@ -314,11 +404,11 @@ const Home = () => {
               {trialDate && !slotOptions.length ? (
                 <p className="booking-unavailable">No trial classes on Sundays.</p>
               ) : null}
-              <button className="button" type="submit">
-                Request Trial
+              <button className="button" type="submit" disabled={trialSubmitting}>
+                {trialSubmitting ? 'Sending...' : 'Request Trial'}
               </button>
               {trialFeedback ? <p className="booking-feedback">{trialFeedback}</p> : null}
-              <small>Form is a placeholder. Connect it to your email or backend service.</small>
+              <small>Form emails our team so we can confirm your trial.</small>
             </form>
           </div>
         </div>

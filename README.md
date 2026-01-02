@@ -16,6 +16,10 @@ If you need to add Vite to another project:
 npm install -D vite
 ```
 
+## Backend
+
+The contact and trial forms post to a small C++ backend that sends email. See `server/README.md` for setup.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

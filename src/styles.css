@@ -1061,6 +1061,7 @@ section {
   gap: 12px;
 }
 
+.form label,
 .booking-form label {
   display: grid;
   gap: 6px;
@@ -1501,6 +1502,7 @@ body.theme-dark .class-meta,
 body.theme-dark .profile-card p,
 body.theme-dark .booking-note,
 body.theme-dark .booking-form label,
+body.theme-dark .form label,
 body.theme-dark .form small,
 body.theme-dark .booking-form small,
 body.theme-dark .footer {

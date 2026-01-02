@@ -15,6 +15,9 @@ dist-ssr
 # Env files
 .env
 
+# Backend build output
+server/build
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
